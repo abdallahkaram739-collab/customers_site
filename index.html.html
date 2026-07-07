@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>سجلّ العملاء</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Rakkas&family=Tajawal:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+/* ==========================================================
+   نظام سجلّ العملاء — تصميم "درج الفهرسة" (Card Catalog)
+   ملف واحد شامل: HTML + CSS + JS — يفتح مباشرة بدون سيرفر
+   ========================================================== */
+
+:root {
+  --paper: #ECE6D6;
+  --paper-dark: #E2DAC4;
+  --card: #FFFDF6;
+  --ink: #241F16;
+  --ink-soft: #6B6250;
+  --ink-faint: #9C927A;
+  --teal: #1F6459;
+  --teal-dark: #123B34;
+  --mustard: #C08F2A;
+  --rust: #A6452A;
+  --line: #D2C7A8;
+  --radius: 3px;
+  --shadow-card: 0 1px 0 rgba(36, 31, 22, 0.06), 0 8px 16px -10px rgba(36, 31, 22, 0.35);
+  --font-display: "Rakkas", serif;
+  --font-body: "Tajawal", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  background-image: linear-gradient(var(--paper-dark) 1px, transparent 1px);
+  background-size: 100% 42px;
+}
+
+:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+
+.drawer-rail {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 34px;
+  background: var(--teal-dark);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; z-index: 5;
+}
+.drawer-rail span { color: #EFE6C8; font-family: var(--font-display); font-size: 15px; line-height: 1; }
+.drawer-rail .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--mustard); margin: 4px 0; }
+@media (max-width: 720px) { .drawer-rail { display: none; } }
+
+.masthead {
+  margin-inline-end: 34px;
+  padding: 40px clamp(20px, 6vw, 64px) 24px;
+  border-bottom: 2px solid var(--ink);
+  display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+}
+.brand { font-family: var(--font-display); font-size: clamp(34px, 5vw, 52px); margin: 0; color: var(--teal-dark); letter-spacing: 1px; }
+.tagline { margin: 6px 0 0; color: var(--ink-soft); font-size: 15px; }
+
+.counter-tab {
+  background: var(--mustard); color: var(--teal-dark);
+  padding: 10px 18px; border-radius: var(--radius) var(--radius) 0 0;
+  text-align: center; position: relative; box-shadow: var(--shadow-card);
+}
+.counter-num { display: block; font-family: var(--font-mono); font-size: 26px; font-weight: 700; line-height: 1; }
+.counter-label { display: block; font-size: 11px; margin-top: 4px; }
+
+.layout {
+  margin-inline-end: 34px;
+  padding: 32px clamp(20px, 6vw, 64px) 80px;
+  display: grid; grid-template-columns: 320px 1fr; gap: 28px; align-items: start;
+}
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+.intake-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow-card); padding: 28px 24px 24px; position: sticky; top: 24px;
+}
+.intake-tab {
+  position: absolute; top: -14px; right: 20px; background: var(--teal); color: var(--card);
+  font-size: 12px; padding: 5px 14px; border-radius: var(--radius); font-weight: 700; letter-spacing: 0.5px;
+}
+.intake-card h2 { font-family: var(--font-display); font-size: 22px; color: var(--teal-dark); margin: 0 0 18px; }
+
+.field { display: block; margin-bottom: 14px; }
+.field-label { display: block; font-size: 13px; color: var(--ink-soft); margin-bottom: 5px; font-weight: 500; }
+.field-label em { color: var(--rust); font-style: normal; }
+.field input, .field textarea {
+  width: 100%; border: 1px solid var(--line); border-radius: var(--radius);
+  background: #FBF9F1; padding: 10px 12px; font-family: var(--font-body); font-size: 14px;
+  color: var(--ink); resize: vertical; transition: border-color 0.15s ease, background 0.15s ease;
+}
+.field input::placeholder, .field textarea::placeholder { color: var(--ink-faint); }
+.field input:focus, .field textarea:focus { border-color: var(--teal); background: #fff; }
+
+.form-error { color: var(--rust); font-size: 13px; margin: -6px 0 14px; }
+
+.btn-file {
+  width: 100%; background: var(--teal-dark); color: #F4EFDD; border: none; border-radius: var(--radius);
+  padding: 12px 16px; font-family: var(--font-body); font-weight: 700; font-size: 15px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+.btn-file:hover { background: var(--teal); }
+.btn-file:active { transform: translateY(1px); }
+.btn-file-icon { font-size: 18px; line-height: 1; }
+
+.ledger-toolbar {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: 18px;
+}
+.ledger-toolbar h2 { font-family: var(--font-display); font-size: 24px; color: var(--teal-dark); margin: 0; }
+.toolbar-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+#searchBox {
+  border: 1px solid var(--line); border-radius: var(--radius); padding: 9px 12px;
+  font-family: var(--font-body); font-size: 13px; background: var(--card); min-width: 220px;
+}
+#searchBox:focus { border-color: var(--teal); }
+
+.btn-ghost {
+  background: transparent; border: 1px solid var(--teal-dark); color: var(--teal-dark);
+  border-radius: var(--radius); padding: 9px 14px; font-family: var(--font-body); font-weight: 700;
+  font-size: 13px; cursor: pointer; transition: background 0.15s ease, color 0.15s ease;
+}
+.btn-ghost:hover { background: var(--teal-dark); color: #F4EFDD; }
+
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+
+.customer-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow-card); padding: 18px 16px 14px; position: relative; animation: cardIn 0.25s ease both;
+}
+@keyframes cardIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+.card-tab {
+  position: absolute; top: -10px; right: 16px; width: 30px; height: 20px; background: var(--mustard);
+  border-radius: 2px; display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 13px; color: var(--teal-dark);
+}
+.card-serial { font-family: var(--font-mono); font-size: 11px; color: var(--ink-faint); letter-spacing: 0.5px; }
+.card-name { font-size: 18px; font-weight: 700; color: var(--ink); margin: 6px 0 10px; }
+.card-row { display: flex; gap: 8px; font-size: 13px; color: var(--ink-soft); margin-bottom: 4px; align-items: baseline; }
+.card-row .k { color: var(--ink-faint); min-width: 66px; flex-shrink: 0; }
+.card-row .v { font-family: var(--font-mono); color: var(--ink); direction: ltr; text-align: right; overflow-wrap: anywhere; }
+.card-notes { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+
+.card-footer { margin-top: 12px; display: flex; justify-content: space-between; align-items: center; }
+.card-date { font-family: var(--font-mono); font-size: 11px; color: var(--ink-faint); }
+.btn-delete { background: none; border: none; color: var(--rust); font-size: 12px; font-weight: 700; cursor: pointer; padding: 4px 6px; border-radius: var(--radius); }
+.btn-delete:hover { background: rgba(166, 69, 42, 0.1); }
+
+.empty-state { border: 1px dashed var(--line); border-radius: var(--radius); padding: 48px 20px; text-align: center; color: var(--ink-soft); }
+.empty-title { font-family: var(--font-display); font-size: 20px; color: var(--teal-dark); margin: 0 0 6px; }
+.empty-sub { margin: 0; font-size: 13px; }
+
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--teal-dark); color: #F4EFDD; padding: 12px 22px; border-radius: var(--radius);
+  font-size: 14px; box-shadow: var(--shadow-card); opacity: 0; pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease; z-index: 20;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .customer-card { animation: none; }
+  .toast { transition: none; }
+}
+</style>
+</head>
+<body>
+
+  <div class="drawer-rail">
+    <span>س</span><span>ج</span><span>ل</span><span class="dot"></span><span>ا</span><span>ل</span><span>ع</span><span>م</span><span>ل</span><span>ا</span><span>ء</span>
+  </div>
+
+  <header class="masthead">
+    <div class="masthead-inner">
+      <h1 class="brand">سجلّ العملاء</h1>
+      <p class="tagline">كل عميل بطاقة… وكل بطاقة لها رقم — والبيانات محفوظة في المتصفح</p>
+    </div>
+    <div class="counter-tab" id="counterTab">
+      <span class="counter-num" id="counterNum">٠</span>
+      <span class="counter-label">بطاقة مسجّلة</span>
+    </div>
+  </header>
+
+  <main class="layout">
+
+    <section class="intake-card" aria-labelledby="intake-title">
+      <div class="intake-tab">جديد</div>
+      <h2 id="intake-title">تسجيل بطاقة جديدة</h2>
+
+      <div id="customerForm" novalidate>
+        <label class="field">
+          <span class="field-label">الاسم <em>*</em></span>
+          <input type="text" name="name" id="name" placeholder="اسم العميل" autocomplete="off" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">البريد الإلكتروني</span>
+          <input type="email" name="email" id="email" placeholder="example@mail.com" autocomplete="off" dir="ltr" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">رقم الهاتف</span>
+          <input type="tel" name="phone" id="phone" placeholder="01xxxxxxxxx" autocomplete="off" dir="ltr" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">ملاحظات</span>
+          <textarea name="notes" id="notes" rows="3" placeholder="أي تفاصيل إضافية..."></textarea>
+        </label>
+
+        <label class="field">
+          <span class="field-label">ابعت إشعار لإيميل</span>
+          <input type="email" name="notifyEmail" id="notifyEmail" placeholder="manager@example.com" autocomplete="off" dir="ltr" />
+        </label>
+
+        <p class="form-error" id="formError" hidden></p>
+
+        <button type="button" id="saveBtn" class="btn-file">
+          <span class="btn-file-icon">＋</span>
+          حفظ البطاقة في السجلّ
+        </button>
+      </div>
+    </section>
+
+    <section class="ledger" aria-labelledby="ledger-title">
+      <div class="ledger-toolbar">
+        <h2 id="ledger-title">البطاقات المسجّلة</h2>
+        <div class="toolbar-actions">
+          <input type="search" id="searchBox" placeholder="ابحث بالاسم أو الهاتف..." />
+          <button type="button" id="exportBtn" class="btn-ghost">تصدير Excel ⤓</button>
+        </div>
+      </div>
+
+      <div id="cardsGrid" class="cards-grid"></div>
+
+      <div id="emptyState" class="empty-state" hidden>
+        <p class="empty-title">السجلّ لسه فاضي</p>
+        <p class="empty-sub">أول بطاقة تسجّلها هتظهر هنا</p>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+// ==========================================================
+// كل منطق الموقع (الباك اند) هنا — البيانات بتتخزن في متصفحك
+// نفس الجهاز والمتصفح = البيانات هتفضل موجودة حتى لو قفلت الصفحة
+// ==========================================================
+
+const STORAGE_KEY = 'customers_registry_v1';
+
+// ⚠️ حط هنا رابط الـ Webhook اللي هتاخده من n8n (Production URL)
+const N8N_WEBHOOK_URL = 'https://abdallahkaram739.app.n8n.cloud/webhook-test/bedd7914-a900-4c94-9716-b48ea5f108a3';
+
+const form = document.getElementById('customerForm');
+const saveBtn = document.getElementById('saveBtn');
+const formError = document.getElementById('formError');
+const cardsGrid = document.getElementById('cardsGrid');
+const emptyState = document.getElementById('emptyState');
+const searchBox = document.getElementById('searchBox');
+const exportBtn = document.getElementById('exportBtn');
+const counterNum = document.getElementById('counterNum');
+const toast = document.getElementById('toast');
+
+let allCustomers = [];
+
+// ---------- التخزين محليًا في المتصفح ----------
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    allCustomers = raw ? JSON.parse(raw) : [];
+  } catch (err) {
+    allCustomers = [];
+  }
+}
+function saveToStorage() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(allCustomers));
+}
+
+function toArabicDigits(num) {
+  const arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  return String(num).replace(/[0-9]/g, (d) => arabic[d]);
+}
+
+function showToast(message) {
+  toast.textContent = message;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} — ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function escapeHTML(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ---------- عرض الكروت ----------
+function renderCards(list) {
+  cardsGrid.innerHTML = '';
+  counterNum.textContent = toArabicDigits(allCustomers.length);
+
+  if (list.length === 0) {
+    emptyState.hidden = false;
+    return;
+  }
+  emptyState.hidden = true;
+
+  list.forEach((customer, index) => {
+    const card = document.createElement('article');
+    card.className = 'customer-card';
+    card.innerHTML = `
+      <div class="card-tab">${(customer.name.trim().charAt(0)) || '؟'}</div>
+      <div class="card-serial">#${String(list.length - index).padStart(4, '0')}</div>
+      <h3 class="card-name">${escapeHTML(customer.name)}</h3>
+      ${customer.email ? `<div class="card-row"><span class="k">البريد</span><span class="v">${escapeHTML(customer.email)}</span></div>` : ''}
+      ${customer.phone ? `<div class="card-row"><span class="k">الهاتف</span><span class="v">${escapeHTML(customer.phone)}</span></div>` : ''}
+      ${customer.notes ? `<div class="card-notes">${escapeHTML(customer.notes)}</div>` : ''}
+      <div class="card-footer">
+        <span class="card-date">${formatDate(customer.createdAt)}</span>
+        <button type="button" class="btn-delete" data-id="${customer.id}">حذف</button>
+      </div>
+    `;
+    cardsGrid.appendChild(card);
+  });
+
+  cardsGrid.querySelectorAll('.btn-delete').forEach((btn) => {
+    btn.addEventListener('click', () => deleteCustomer(btn.dataset.id));
+  });
+}
+
+// ---------- إضافة عميل جديد ----------
+saveBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  formError.hidden = true;
+
+  const name = document.getElementById('name').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const notes = document.getElementById('notes').value.trim();
+  const notifyEmail = document.getElementById('notifyEmail').value.trim();
+
+  if (!name) {
+    formError.textContent = 'من فضلك اكتب اسم العميل.';
+    formError.hidden = false;
+    return;
+  }
+
+  const newCustomer = {
+    id: Date.now().toString(),
+    name, email, phone, notes, notifyEmail,
+    createdAt: new Date().toISOString(),
+  };
+
+  allCustomers.unshift(newCustomer);
+  saveToStorage();
+  renderCards(allCustomers);
+  clearForm();
+  showToast('تم حفظ البطاقة بنجاح ✓');
+
+  // إرسال البيانات لـ n8n (يسجّلها في Google Sheet ويبعت الإيميل)
+  sendToN8n(newCustomer);
+});
+
+function clearForm() {
+  document.getElementById('name').value = '';
+  document.getElementById('email').value = '';
+  document.getElementById('phone').value = '';
+  document.getElementById('notes').value = '';
+  document.getElementById('notifyEmail').value = '';
+}
+
+async function sendToN8n(customer) {
+  if (!N8N_WEBHOOK_URL || N8N_WEBHOOK_URL.includes('YOUR-N8N-INSTANCE')) {
+    console.warn('لم يتم ضبط رابط n8n Webhook بعد.');
+    return;
+  }
+  try {
+    const res = await fetch(N8N_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(customer),
+    });
+    if (!res.ok) throw new Error('فشل الاتصال بـ n8n');
+    showToast('تم إرسال البيانات وتسجيلها في الشيت ✓');
+  } catch (err) {
+    showToast('تم الحفظ محليًا، لكن تعذّر الإرسال لـ n8n');
+  }
+}
+
+// ---------- حذف عميل ----------
+function deleteCustomer(id) {
+  if (!confirm('تأكيد حذف هذه البطاقة؟')) return;
+  allCustomers = allCustomers.filter((c) => c.id !== id);
+  saveToStorage();
+  renderCards(allCustomers);
+  showToast('تم حذف البطاقة');
+}
+
+// ---------- البحث ----------
+searchBox.addEventListener('input', () => {
+  const q = searchBox.value.trim().toLowerCase();
+  if (!q) return renderCards(allCustomers);
+  const filtered = allCustomers.filter(
+    (c) =>
+      c.name.toLowerCase().includes(q) ||
+      (c.phone || '').toLowerCase().includes(q) ||
+      (c.email || '').toLowerCase().includes(q)
+  );
+  renderCards(filtered);
+});
+
+// ---------- تصدير Excel (CSV) ----------
+exportBtn.addEventListener('click', () => {
+  const headers = ['الرقم', 'الاسم', 'البريد الإلكتروني', 'رقم الهاتف', 'ملاحظات', 'تاريخ التسجيل'];
+  const rows = allCustomers.map((c) =>
+    [c.id, c.name, c.email, c.phone, c.notes, c.createdAt]
+      .map((v) => `"${(v || '').toString().replace(/"/g, '""')}"`)
+      .join(',')
+  );
+  const csv = '\uFEFF' + headers.join(',') + '\n' + rows.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'customers.csv';
+  link.click();
+  showToast('جاري تحميل ملف Excel...');
+});
+
+// دعم الحفظ بالضغط على Enter داخل أي حقل نصي (عدا الملاحظات)
+['name', 'email', 'phone', 'notifyEmail'].forEach((id) => {
+  document.getElementById(id).addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveBtn.click();
+    }
+  });
+});
+
+// تشغيل أولي
+loadFromStorage();
+renderCards(allCustomers);
+</script>
+</body>
+</html>
